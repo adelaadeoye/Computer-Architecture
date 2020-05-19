@@ -5,6 +5,7 @@ import sys
 HLT = 0O1
 PRN = 71
 LDI =130
+MUL=162
 
 class CPU:
     """Main CPU class."""
@@ -25,19 +26,28 @@ class CPU:
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
+        with open(sys.argv[1]) as f:
+            for line in f:
+                string_val = line.split("#")[0].strip()
+                if string_val=='':
+                    continue
+                v= int(string_val,2)
+                self.ram[address]=v
+                address +=1
+
     def ram_read(self,MAR):
         return self.ram[MAR]
 
@@ -52,6 +62,8 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        if op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -85,19 +97,20 @@ class CPU:
         while True:
             IR= self.ram_read(self.pc)
             if IR==LDI:
-                print(" i am LDI",self.pc)
-                print(" i am RAM",self.ram)
-                print(" i am REG",self.reg)
                 operand_a= self.ram_read(self.pc+1)
                 operand_b= self.ram_read(self.pc+2)
-                print(operand_a,operand_b)
                 self.reg[operand_a]=operand_b
-                print("I am now reg at 0",self.reg[operand_a])
                 self.pc+=3
             elif IR==PRN:
                 value=self.reg[operand_a]
                 print(value)
                 self.pc+=2
+            elif IR==MUL:
+                op="MUL"
+                operand_a= self.ram_read(self.pc+1)
+                operand_b= self.ram_read(self.pc+2)
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
 
             elif IR==HLT:
                 sys.exit(0)
