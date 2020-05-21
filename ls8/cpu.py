@@ -8,6 +8,9 @@ LDI =130
 MUL=162
 POP=70
 PUSH=69
+CALL=80
+RET=0b00010001
+ADD=160
 class CPU:
     """Main CPU class."""
 
@@ -62,10 +65,10 @@ class CPU:
   
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
         if op == "ADD":
+            
             self.reg[reg_a] += self.reg[reg_b]
-        if op == "MUL":
+        elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
@@ -98,22 +101,20 @@ class CPU:
         the Instruction Register. 
         #This can just be a local variable in run()."""
         while True:
+            IR = self.ram_read(self.pc)
             operand_a= self.ram_read(self.pc+1)
             operand_b= self.ram_read(self.pc+2)
-            IR= self.ram_read(self.pc)
             if IR==LDI:
                 self.reg[operand_a]=operand_b
                 self.pc+=3
             elif IR==PRN:
                 value=self.reg[operand_a]
                 print(value)
-               
+                
                 
                 self.pc+=2
             elif IR==MUL:
                 op="MUL"
-                operand_a= self.ram_read(self.pc+1)
-                operand_b= self.ram_read(self.pc+2)
                 self.alu(op,operand_a,operand_b)
                 self.pc+=3
             elif IR==PUSH:
@@ -123,23 +124,45 @@ class CPU:
                 top_of_stack_addr = self.reg[self.SP]
                 self.ram[top_of_stack_addr] = val
                 self.pc += 2
-                # print("I am push",val)
             elif IR==POP:
             # Copy the value from the address pointed to by SP to the given register.
             # Increment SP.
 
                 value=self.ram[self.reg[self.SP]]
-                reg_num=self.ram_read(self.pc+1)
+                reg_num=operand_a
                 self.reg[reg_num]=value
                 self.reg[self.SP]+=1
                 self.pc += 2
                 
                 
-                # print("I am pop",value)
+            elif IR==CALL:
+                return_addr = self.pc + 2
+        # Push it on the stack
+                self.reg[self.SP] -= 1
+                top_of_stack_addr = self.reg[self.SP]
+                self.ram[top_of_stack_addr] = return_addr
 
-                
+        # Set the PC to the subroutine addr
+                reg_num = self.ram[self.pc + 1]
+                subroutine_addr = self.reg[reg_num]
+                self.pc = subroutine_addr
+            elif IR==RET:
+                top_of_stack_addr = self.reg[self.SP]
+                return_addr = self.ram[top_of_stack_addr]
+
+        # Store it in the PC
+                self.pc = return_addr
+                self.reg[self.SP] += 1
+            elif IR==ADD:
+                op="ADD"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
             elif IR==HLT:
                 sys.exit(0)
+            else:
+                
+                print(f'unknown instruction {IR} at address {self.pc}')
+                exit(1)    
 
 
 
