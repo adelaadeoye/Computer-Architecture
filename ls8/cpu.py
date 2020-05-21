@@ -6,7 +6,8 @@ HLT = 0O1
 PRN = 71
 LDI =130
 MUL=162
-
+POP=70
+PUSH=69
 class CPU:
     """Main CPU class."""
 
@@ -15,7 +16,8 @@ class CPU:
         self.reg=[0]* 8
         self.ram=[0]*256
         self.pc=0
-        
+        self.SP=7
+        self.reg[self.SP]=0xf4
     
 
 
@@ -39,6 +41,7 @@ class CPU:
         # for instruction in program:
         #     self.ram[address] = instruction
         #     address += 1
+        
         with open(sys.argv[1]) as f:
             for line in f:
                 string_val = line.split("#")[0].strip()
@@ -95,15 +98,17 @@ class CPU:
         the Instruction Register. 
         #This can just be a local variable in run()."""
         while True:
+            operand_a= self.ram_read(self.pc+1)
+            operand_b= self.ram_read(self.pc+2)
             IR= self.ram_read(self.pc)
             if IR==LDI:
-                operand_a= self.ram_read(self.pc+1)
-                operand_b= self.ram_read(self.pc+2)
                 self.reg[operand_a]=operand_b
                 self.pc+=3
             elif IR==PRN:
                 value=self.reg[operand_a]
                 print(value)
+               
+                
                 self.pc+=2
             elif IR==MUL:
                 op="MUL"
@@ -111,7 +116,28 @@ class CPU:
                 operand_b= self.ram_read(self.pc+2)
                 self.alu(op,operand_a,operand_b)
                 self.pc+=3
+            elif IR==PUSH:
+                self.reg[self.SP] -= 1
+                reg_num = self.ram_read(self.pc+1)
+                val = self.reg[reg_num]
+                top_of_stack_addr = self.reg[self.SP]
+                self.ram[top_of_stack_addr] = val
+                self.pc += 2
+                # print("I am push",val)
+            elif IR==POP:
+            # Copy the value from the address pointed to by SP to the given register.
+            # Increment SP.
 
+                value=self.ram[self.reg[self.SP]]
+                reg_num=self.ram_read(self.pc+1)
+                self.reg[reg_num]=value
+                self.reg[self.SP]+=1
+                self.pc += 2
+                
+                
+                # print("I am pop",value)
+
+                
             elif IR==HLT:
                 sys.exit(0)
 
