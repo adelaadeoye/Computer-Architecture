@@ -11,6 +11,15 @@ PUSH=69
 CALL=80
 RET=0b00010001
 ADD=160
+CMP=167
+JMP=84
+JEQ=0b01010101
+JNE=0b01010110
+AND=0b10101000
+OR=0b10101010
+XOR=0b10101011
+NOT=0b01101001
+MOD=0b10100100
 class CPU:
     """Main CPU class."""
 
@@ -21,6 +30,7 @@ class CPU:
         self.pc=0
         self.SP=7
         self.reg[self.SP]=0xf4
+        self.FL=0b00000000
     
 
 
@@ -65,12 +75,33 @@ class CPU:
   
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-        if op == "ADD":
-            
+        if op=="CMP":
+           if self.reg[reg_a] < self.reg[reg_b]:
+               self.FL = self.FL | 0b00000100
+           if self.reg[reg_a] > self.reg[reg_b]:
+               self.FL = self.FL | 0b00000010
+           if self.reg[reg_a] == self.reg[reg_b]:
+              self.FL = self.FL | 0b00000001
+        elif op=="AND":
+            self.reg[reg_a]&=reg_b
+        elif op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == "XOR":
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] = ~self.reg[reg_a]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "MOD":
+            if self.reg[reg_b]==0:
+                print(f'Operand b is 0')
+                exit(1)
+            else: 
+                self.reg[reg_a] %= self.reg[reg_b]
         #elif op == "SUB": etc
+        
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -110,13 +141,32 @@ class CPU:
             elif IR==PRN:
                 value=self.reg[operand_a]
                 print(value)
-                
-                
                 self.pc+=2
             elif IR==MUL:
                 op="MUL"
                 self.alu(op,operand_a,operand_b)
                 self.pc+=3
+            elif IR==AND:
+                op="AND"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
+            elif IR==OR:
+                op="OR"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
+            elif IR==XOR:
+                op="XOR"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
+            elif IR==MOD:
+                op="MOD"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
+            elif IR==NOT:
+                op="NOT"
+                b=0
+                self.alu(op,operand_a,b)
+                self.pc+=2
             elif IR==PUSH:
                 self.reg[self.SP] -= 1
                 reg_num = self.ram_read(self.pc+1)
@@ -157,10 +207,28 @@ class CPU:
                 op="ADD"
                 self.alu(op,operand_a,operand_b)
                 self.pc+=3
+            elif IR==CMP:
+                op="CMP"
+                self.alu(op,operand_a,operand_b)
+                self.pc+=3
+            elif IR==JMP:
+                # Jump to the address stored in the given register.
+                # Set the PC to the address stored in the given register.
+                self.pc=self.reg[operand_a]
+    
+            elif IR==JEQ:
+                if self.FL & 0b00000001==1:
+                    self.pc=self.reg[operand_a]
+                else:
+                    self.pc+=2
+            elif IR==JNE:
+                if self.FL & 0b00000001 == 0:
+                    self.pc=self.reg[operand_a]
+                else:   
+                    self.pc+=2
             elif IR==HLT:
                 sys.exit(0)
             else:
-                
                 print(f'unknown instruction {IR} at address {self.pc}')
                 exit(1)    
 
